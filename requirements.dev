@@ -1,0 +1,34 @@
+# rpa
+pywin32
+pywinauto
+PyAutoGUI
+urllib3
+psutil
+keyboard
+mouse
+selenium
+pandas
+openpyxl
+xlrd
+xlwt
+Pillow
+requests
+beautifulsoup4
+lxml
+
+# builder
+pyinstaller
+pyinstaller-versionfile
+PyYAML
+
+# se
+Flask
+Flask-Login
+Flask-SocketIO
+Flask-SQLAlchemy
+gevent-websocket
+
+# sql
+cx-Oracle
+SQLAlchemy
+psycopg2
