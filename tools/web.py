@@ -272,3 +272,19 @@ class Web:
             if int((datetime.now() - start_time).seconds) > timeout:
                 return None
             sleep(1)
+
+    def execute_script_click_xpath(self, xpath: str):
+        try:
+            xpath = xpath.replace('"', "'")
+            self.driver.execute_script(f"""
+                var xpathExpression = "{xpath}";
+                var result = document.evaluate(xpathExpression, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                var element = result.singleNodeValue;
+
+                // Trigger the click event on the element
+                if (element) {{
+                  element.click();
+                }}
+            """)
+        except:
+            sleep(10)

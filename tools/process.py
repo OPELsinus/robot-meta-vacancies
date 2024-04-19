@@ -52,7 +52,7 @@ def kill_process_list(process_list: Union[Path, List] = None):
     processes = list()
     for p in psutil.process_iter():
         with suppress(Exception):
-            if p.name() in process_list and p.username() == username:
+            if p.name() in process_list and p.username() == username and p.name() not in ['chrome.exe', 'electron.exe']:
                 processes.append(p)
 
     for proc in processes:
