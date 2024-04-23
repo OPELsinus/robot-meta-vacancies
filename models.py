@@ -81,8 +81,7 @@ def get_all_data_by_status(session: Session, status: Union[list, str]):
         # for i in [row for row in session.query(Table_).filter(Table_.executor_name == None).all()]:
         #     print(type(i.executor_name))
     else:
-        rows = [row for row in session.query(Table_).filter(status == Table_.skillaz_status
-                                                            )
+        rows = [row for row in session.query(Table_).filter(status == Table_.skillaz_status)
         .filter(or_(Table_.executor_name == ip_address, Table_.executor_name == None)).order_by(random()).all()]
 
     return list(rows)

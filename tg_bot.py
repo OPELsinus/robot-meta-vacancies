@@ -6,7 +6,7 @@ import ssl
 from aiohttp import TCPConnector, ClientSession
 
 API_TOKEN = "6800317608:AAGJN9DuVMM5CWCGcCN5Rz5p2WTJCN0CjzI"
-CHAT_ID = -4144890992
+CHAT_ID = -1002099577880
 
 
 async def queue_process(process_id, config_id, machine_id):

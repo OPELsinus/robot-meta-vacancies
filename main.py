@@ -31,11 +31,9 @@ from config import (
     excels_saving_path,
     skillaz_login,
     skillaz_login_test,
-    skillaz_pass,
-    skillaz_pass_test,
     meta_login,
     meta_pass,
-    mapping_file,
+    mapping_file, machine_id, process_id, config_id, enqueue_url, skillaz_pass, skillaz_pass_test,
 )
 from models import Base, add_to_db, get_all_data_by_status, update_in_db
 from tg_bot import check_for_commands, API_TOKEN, main_tg_bot
@@ -46,7 +44,7 @@ from tools.web import Web
 import pyautogui as pag
 
 
-step_meta = True
+step_meta = False
 step_skillaz = True
 step_excel = True
 
@@ -180,6 +178,12 @@ def main():
                     web.find_element('//*[@id="approvals_code"]').type_keys(code)
 
                     web.find_element('//*[@id="checkpointSubmitButton"]').click()
+
+                    if web.wait_element('//button[text()="Продолжить"]', timeout=20):
+                        web.find_element('//button[text()="Продолжить"]').click()
+
+                        if web.wait_element('//button[text()="Это я"]', timeout=20):
+                            web.find_element('//button[text()="Это я"]').click()
 
                     with suppress(Exception):
                         download_buttons = web.find_elements(
@@ -330,16 +334,18 @@ def main():
 
                     # web.quit()
 
-                    # break
+                    break
 
             except:
                 traceback.print_exc()
+
+    # ----- SKILLAZ -----
 
     rows = get_all_data_by_status(session, ["new", "processing"])
 
     while len(rows) != 0:
 
-        rows = get_all_data_by_status(session, ["new"])
+        rows = get_all_data_by_status(session, ["test"])
 
         try:
             row = rows[0]
@@ -358,25 +364,37 @@ def main():
 
             skillaz_action = None
 
-            update_in_db(
-                session=session,
-                row=row,
-                status_="processing",
-                skillaz_status_="processing",
-                skillaz_action_=skillaz_action,
-                previous_status_=None,
-                error_reason_=None,
-                response_date_=row.response_date,
-                city_=row.city,
-                job_=row.job,
-                first_name_=row.first_name,
-                last_name_=row.last_name,
-                phone_number_=row.phone_number,
-            )
+            # update_in_db(
+            #     session=session,
+            #     row=row,
+            #     status_="processing",
+            #     skillaz_status_="processing",
+            #     skillaz_action_=skillaz_action,
+            #     previous_status_=None,
+            #     error_reason_=None,
+            #     response_date_=row.response_date,
+            #     city_=row.city,
+            #     job_=row.job,
+            #     first_name_=row.first_name,
+            #     last_name_=row.last_name,
+            #     phone_number_=row.phone_number,
+            # )
 
             try:
                 web = Web()
                 web.run()
+                # web.get(skillaz_test_url)
+                #
+                # web.find_element('//button[contains(text(), "логин")]').click()
+                #
+                # web.find_element('//*[@id="UserName-auth-input"]').click()
+                # web.find_element('//*[@id="UserName-auth-input"]').type_keys(skillaz_login_test)
+                #
+                # web.find_element('//*[@id="without-id-input"]').click()
+                # web.find_element('//*[@id="without-id-input"]').type_keys('Aa1234567!')
+                #
+                # web.find_element('//button[contains(text(), "Войти")]').click()
+
                 web.get(skillaz_url)
 
                 web.find_element('//button[contains(text(), "корп")]').click()
@@ -571,7 +589,7 @@ def main():
                     sleep(3)
 
                     if not found_duplicate:
-                        # web.execute_script_click_xpath('//button[contains(text(), "Сохранить")]')
+                        web.execute_script_click_xpath('//button[contains(text(), "Сохранить")]')
                         logger.info(
                             f"Успешно сохранён: {row.last_name} {row.first_name}"
                         )
@@ -582,15 +600,7 @@ def main():
 
                 else:
 
-                    sleep(3)
-
-                    # web.driver.refresh()
-                    #
-                    # web.find_element('//*[@id="filter-by-fio"]').click()
-                    # web.find_element('//*[@id="filter-by-fio"]').type_keys(row.phone_number)
-                    # web.find_element('//div[(text()="Точное совпадение") and (@class="WS__radio_option")]').click()
-                    #
-                    # web.wait_element('//input[contains(@id, "react-select-16-input")]')
+                    sleep(0)
 
                     current_status = web.find_element(
                         '//span[@data-testid="candidate-status"]'
@@ -620,29 +630,23 @@ def main():
                         # total_days = (datetime.date.today() - day).days
                         total_hours = (
                             datetime.datetime.now()
-                            - datetime.datetime(year, month_, day_, hour, minute, 0)
+                            - day
                         ).total_seconds() / 3600
                         print(f"TOTAL HOURS: {total_hours}")
-
-                        sleep(2)
+                        print(f"CURRENT STATUS: {current_status}")
+                        sleep(0)
 
                         change_status = False
 
                         # ALL STATEMENTS #
 
                         if current_status == "Выход на работу":
-                            print("KEK1")
                             if total_hours >= 2160:
-                                print("KEK1.1")
                                 change_status = True
-                                # web.execute_script_click_xpath('//div[(text()="Новый") and (@class="WS__radio_option")]')
 
                         if current_status in ["Полиграф", "ПФИ проведено", "Резерв"]:
-                            print("KEK2")
                             if total_hours >= 720:
-                                print("KEK2.1")
                                 change_status = True
-                                # web.execute_script_click_xpath('//div[(text()="Новый") and (@class="WS__radio_option")]')
 
                         if current_status in [
                             "Интервью с HR не предусмотрено",
@@ -659,11 +663,8 @@ def main():
                             "Рекомендован на другой филиал",
                             "Телефонное интервью с HR не предусмотрено",
                         ]:
-                            print("KEK3")
                             if total_hours >= 48:
-                                print("KEK3.1")
                                 change_status = True
-                                # web.execute_script_click_xpath('//div[(text()="Новый") and (@class="WS__radio_option")]')
 
                         if current_status in [
                             "Видеоконференция",
@@ -690,11 +691,8 @@ def main():
                             "ИС пройден",
                             "Испытательный срок пройден",
                         ]:
-                            print("KEK4")
                             if total_hours >= 360:
-                                print("KEK4.1")
                                 change_status = True
-                                # web.execute_script_click_xpath('//div[(text()="Новый") and (@class="WS__radio_option")]')
 
                         if current_status in [
                             "Документы приняты/на оформление",
@@ -707,7 +705,6 @@ def main():
                             "Приём кандидата согласован",
                             "Решение о найме",
                         ]:
-                            print("KEK5")
                             change_status = False
 
                         if current_status in [
@@ -728,7 +725,6 @@ def main():
                             "Риски выявлены/Отказ (Полиграф)",
                             "Самоотказ (Завершен)",
                         ]:
-                            print("KEK6")
                             change_status = True
 
                         # ----- Изменение статуса -----
@@ -736,6 +732,10 @@ def main():
                         print(f"STATUS: {change_status}")
 
                         if change_status:
+
+                            skillaz_action = "Изменил статус"
+
+                            # ------ Меняем статус и Редактируем -----
 
                             print("CHANGING STATUS!")
 
@@ -763,24 +763,26 @@ def main():
 
                             print()
                             sleep(1.6)
-                            web.find_element(
-                                '//div[contains(text(), "Оставить комментарий")]/../textarea'
-                            ).click()
-                            web.find_element(
-                                '//div[contains(text(), "Оставить комментарий")]/../textarea'
-                            ).type_keys(".")
+                            # web.find_element(
+                            #     '//div[contains(text(), "Оставить комментарий")]/../textarea'
+                            # ).click()
+                            # web.find_element(
+                            #     '//div[contains(text(), "Оставить комментарий")]/../textarea'
+                            # ).type_keys("Повторный отклик")
 
-                            # web.find_element('//button[@data-testid="button-status-change"]').click()
-                            #
-                            # if web.wait_element('//div[contains(text(), "Текущий статус кандидата такой же как запрошен для изменения")]', timeout=5):
-                            #     print('Closing the form')
-                            #     web.find_element('//div[@data-testid="button-modal-close"]').click()
+                            web.find_element('//button[@data-testid="button-status-change"]').click()
+
+                            if web.wait_element('//div[contains(text(), "Текущий статус кандидата такой же как запрошен для изменения")]', timeout=5):
+                                print('Closing the form')
+                                web.find_element('//div[@data-testid="button-modal-close"]').click()
                             sleep(1.5)
                             web.find_element(
                                 '//div[@data-testid="button-modal-close"]'
                             ).click()
 
-                            # Editting the candidate
+                            print("SAVED STATUS")
+
+                            # ----- Редактируем Кандидата -----
 
                             web.find_element(
                                 '//span[contains(text(), "Редактировать кандидата")]'
@@ -802,13 +804,6 @@ def main():
                             all_vacancies.append(
                                 web.find_element('//span[@id="aria-context"]')
                             )
-                            print(all_vacancies)
-                            print(
-                                web.find_element('//span[@id="aria-context"]').get_attr(
-                                    "text"
-                                )
-                            )
-                            print("CHPOK:", all_vacancies[-1].get_attr("text"))
 
                             for vacancy in all_vacancies:
                                 vacancy_text = vacancy.get_attr("text").lower()
@@ -824,12 +819,11 @@ def main():
 
                                 print(vacancy_text, " | ", vacancy.selector)
 
-                                # if row.city == 'алматы'
                                 if (
                                     str(id_) in vacancy_text
                                     and city_skillaz in vacancy_text
                                     and vacancy.selector == '//span[@id="aria-context"]'
-                                ):  # city_skillaz == 'нур-султан':
+                                ):
                                     print("TYPING ENTER!!!")
                                     # web.find_element('//*[@id="VacancyId"]').click(double=False)
                                     sleep(1.5)
@@ -847,30 +841,9 @@ def main():
 
                                     print("HERE!!!")
                                     print(vacancy.selector)
-                                    try:
-                                        vacancy.scroll()
-                                    except:
-                                        print("bad scroll")
                                     vacancy.click()
                                     # web.execute_script_click_xpath(vacancy.selector)
                                     break
-
-                            # all_vacancies = web.find_elements('//div[@class="WS_select__option css-yt9ioa-option"]')
-                            # print(all_vacancies)
-                            #
-                            # for vacancy in all_vacancies:
-                            #
-                            #     print(vacancy.get_attr('text'))
-                            #
-                            #     vacancy_text = vacancy.get_attr('text').lower()
-                            #
-                            #     if job_title in vacancy_text and row.city in vacancy_text:  # and '520000379' in vacancy_text:
-                            #
-                            #         print('HERE!!!')
-                            #         print(vacancy.selector)
-                            #
-                            #         vacancy.click()
-                            #         break
 
                             sleep(3)
                             try:
@@ -882,29 +855,36 @@ def main():
                                     '//label/div[contains(@data-original-title, "Таргет")]'
                                 )
 
-                            sleep(1)
+                            sleep(0)
                             # web.execute_script_click_xpath('//button[contains(text(), "Сохранить")]')
+                            print('SAVEDDDDDDD!!!!')
 
-                            skillaz_action = "Изменил существующий"
+                            if skillaz_action == "Изменил статус":
 
-                    sleep(10)
+                                skillaz_action = "Изменил статус и редактировал кандидата"
 
-                update_in_db(
-                    session=session,
-                    row=row,
-                    status_="success",
-                    skillaz_status_="success",
-                    skillaz_action_=skillaz_action,
-                    previous_status_=previous_status,
-                    error_reason_=None,
-                    response_date_=row.response_date,
-                    city_=row.city,
-                    job_=row.job,
-                    first_name_=row.first_name,
-                    last_name_=row.last_name,
-                    phone_number_=row.phone_number,
-                )
-                sleep(0.7)
+                            else:
+
+                                skillaz_action = "Редактировал кандидата"
+
+                sleep(0)
+
+                # update_in_db(
+                #     session=session,
+                #     row=row,
+                #     status_="success",
+                #     skillaz_status_="success",
+                #     skillaz_action_=skillaz_action,
+                #     previous_status_=previous_status,
+                #     error_reason_=None,
+                #     response_date_=row.response_date,
+                #     city_=row.city,
+                #     job_=row.job,
+                #     first_name_=row.first_name,
+                #     last_name_=row.last_name,
+                #     phone_number_=row.phone_number,
+                # )
+                # sleep(0.7)
                 # status_: str, response_date_: datetime, city_: str, job_: str,
                 # first_name_: str, last_name_: str, phone_number_: str, skillaz_status_: str
                 web.quit()
@@ -913,32 +893,34 @@ def main():
             except:
                 traceback.print_exc()
                 # web.quit()
-                update_in_db(
-                    session=session,
-                    row=row,
-                    status_="failed",
-                    skillaz_status_="failed",
-                    skillaz_action_=skillaz_action,
-                    previous_status_=None,
-                    error_reason_=str(traceback.format_exc())[:500],
-                    response_date_=row.response_date,
-                    city_=row.city,
-                    job_=row.job,
-                    first_name_=row.first_name,
-                    last_name_=row.last_name,
-                    phone_number_=row.phone_number,
-                )
-
+                # update_in_db(
+                #     session=session,
+                #     row=row,
+                #     status_="failed",
+                #     skillaz_status_="failed",
+                #     skillaz_action_=skillaz_action,
+                #     previous_status_=None,
+                #     error_reason_=str(traceback.format_exc())[:500],
+                #     response_date_=row.response_date,
+                #     city_=row.city,
+                #     job_=row.job,
+                #     first_name_=row.first_name,
+                #     last_name_=row.last_name,
+                #     phone_number_=row.phone_number,
+                # )
+                #
 
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     app: Union[Web, Odines] = None
     # ? не убирать данный try, он необходим для того чтобы Pyinstaller не выводил traceback в окошко
     data = {
-        "process": 51,
-        "config": 62,
-        "machines": [2]
+        "process": process_id,
+        "config": config_id,
+        "machines": [machine_id]
     }
+    # requests.post(enqueue_url, json=data, verify=False)
+    # sleep(20000)
 
     try:
 
@@ -948,10 +930,11 @@ if __name__ == "__main__":
 
         logger.warning("END")
 
-        requests.post('https://rpa.magnum.kz:8443/enqueue', json=data, verify=False)
-
+        # requests.post(enqueue_url, json=data, verify=False)
 
     except (Exception,):
+
+        # requests.post(enqueue_url, json=data, verify=False)
         with suppress(Exception):
             app.quit()
         kill_process_list(process_list_path)

@@ -81,6 +81,10 @@ skillaz_login = config_data['skillaz_login']
 skillaz_pass = config_data['skillaz_pass']
 skillaz_login_test = config_data['skillaz_login_test']
 skillaz_pass_test = config_data['skillaz_pass_test']
+process_id = int(config_data['process_id'])
+config_id = int(config_data['config_id'])
+machine_id = int(config_data['machine_id'])
+enqueue_url = config_data['enqueue_url']
 
 
 download_path = Path.home().joinpath('downloads')
