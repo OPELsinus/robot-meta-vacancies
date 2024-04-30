@@ -345,7 +345,7 @@ def main():
 
     while len(rows) != 0:
 
-        rows = get_all_data_by_status(session, ["test"])
+        rows = get_all_data_by_status(session, ["notnew"])
 
         try:
             row = rows[0]
@@ -364,21 +364,21 @@ def main():
 
             skillaz_action = None
 
-            # update_in_db(
-            #     session=session,
-            #     row=row,
-            #     status_="processing",
-            #     skillaz_status_="processing",
-            #     skillaz_action_=skillaz_action,
-            #     previous_status_=None,
-            #     error_reason_=None,
-            #     response_date_=row.response_date,
-            #     city_=row.city,
-            #     job_=row.job,
-            #     first_name_=row.first_name,
-            #     last_name_=row.last_name,
-            #     phone_number_=row.phone_number,
-            # )
+            update_in_db(
+                session=session,
+                row=row,
+                status_="processing",
+                skillaz_status_="processing",
+                skillaz_action_=skillaz_action,
+                previous_status_=None,
+                error_reason_=None,
+                response_date_=row.response_date,
+                city_=row.city,
+                job_=row.job,
+                first_name_=row.first_name,
+                last_name_=row.last_name,
+                phone_number_=row.phone_number,
+            )
 
             try:
                 web = Web()
@@ -421,7 +421,7 @@ def main():
                     '//div[@data-testid="candidates-found"]'
                 ).get_attr("text")
                 print(f"Here3 | {datetime.datetime.now()}")
-                sleep(1)
+                sleep(1.5)
 
                 job_title = None
                 city_skillaz = row.city
@@ -436,6 +436,12 @@ def main():
                 id_ = mapping[
                     (mapping["рус"] == row.job) | (mapping["каз"] == row.job)
                 ]["ID"].iloc[0]
+                id_ = '100002502'
+
+                keyword = str(mapping[
+                    (mapping["рус"] == row.job) | (mapping["каз"] == row.job)
+                ]["Ключевое слово"].iloc[0]).lower().replace('nan', '')
+                keyword = '003882'
 
                 # if row.job == 'кассир':
                 #     job_title = 'кассир'
@@ -488,11 +494,14 @@ def main():
 
                         print(vacancy_text, " | ", vacancy.selector)
 
+                        vacancy_text = vacancy_text.replace('нур-султан', 'астана').lower()
+
                         # if row.city == 'алматы'
                         if (
                             job_title in vacancy_text
                             and city_skillaz in vacancy_text
                             and vacancy.selector == '//span[@id="aria-context"]'
+                            and (not keyword or keyword in vacancy_text)
                         ):  # city_skillaz == 'нур-султан':
                             print("TYPING ENTER!!!")
                             # web.find_element('//*[@id="VacancyId"]').click(double=False)
@@ -506,6 +515,7 @@ def main():
                             job_title in vacancy_text
                             and city_skillaz in vacancy_text
                             and vacancy.selector != '//span[@id="aria-context"]'
+                            and (not keyword or keyword in vacancy_text)
                         ):  # city_skillaz != 'нур-султан':  # and '520000379' in vacancy_text:
 
                             print("HERE!!!")
@@ -559,6 +569,7 @@ def main():
                         print("DUPLO")
                         found_duplicate = True
 
+                    web.find_element('//div[contains(text(), "Быстрый")]').click()
                     # web.execute_script_click_xpath('//label/div[contains(@data-original-title, "Таргет")]')
 
                     web.find_element(
@@ -589,7 +600,7 @@ def main():
                     sleep(3)
 
                     if not found_duplicate:
-                        web.execute_script_click_xpath('//button[contains(text(), "Сохранить")]')
+                        # web.execute_script_click_xpath('//button[contains(text(), "Сохранить")]')
                         logger.info(
                             f"Успешно сохранён: {row.last_name} {row.first_name}"
                         )
@@ -603,15 +614,17 @@ def main():
                     sleep(0)
 
                     current_status = web.find_element(
-                        '//span[@data-testid="candidate-status"]'
+                        '(//span[@data-testid="candidate-status"])[1]'
                     ).get_attr("text")
+
+                    phone_num = web.find_element('(//div[@data-testid="info-block-value"])[1]').get_attr("text")
 
                     previous_status = current_status
 
                     if current_status != "Новый":
 
                         date_edited = web.find_element(
-                            '//span[@data-testid="candidate-status"]/following-sibling::span[(string-length(text()) > 1) and (contains(text(), "20"))]'
+                            '(//span[@data-testid="candidate-status"]/following-sibling::span[(string-length(text()) > 1) and (contains(text(), "20"))])[1]'
                         ).get_attr("text")
                         date_edited = date_edited.replace(",", "")
 
@@ -650,10 +663,10 @@ def main():
 
                         if current_status in [
                             "Интервью с HR не предусмотрено",
-                            'Не предусмотрен этап "Полиграф”',
-                            'Не предусмотрен этап "Тестирование”',
+                            'Не предусмотрен этап "Полиграф"',
+                            'Не предусмотрен этап "Тестирование"',
                             "Не предусмотрена стажировка",
-                            "«Не предусмотрено интервью с заказчиком",
+                            "Не предусмотрено интервью с заказчиком",
                             "Недозвон",
                             "Неявка",
                             "Неявка на интервью",
@@ -670,23 +683,18 @@ def main():
                             "Видеоконференция",
                             "Интервью с заказчиком",
                             "Интервью с HR",
-                            "Неявка на полиграф",
                             "Одобрен по резюме",
-                            "Отсутствует вакансия/Резерв",
                             "Пригласить на собеседование",
                             "Проверка СБ",
-                            "Риски выявлены/ На согласование руководителю",
                             "Риски выявлены/ На согласование руководителю",
                             "Риски не выявлены",
                             "Собеседование с заказчиком",
                             "Собеседование с руководителем подразделения",
-                            "Согласовано (ознакомительный день пройден). Предоставление документов",
                             "Стажировка/Ознакомительный день",
                             "Телефонное интервью",
                             "Телефонное интервью с HR",
                             "Тестирование онлайн",
                             "Тестирование оффлайн",
-                            "Пригласить на собеседование",
                             "Рекомендован на другую должность",
                             "ИС пройден",
                             "Испытательный срок пройден",
@@ -704,8 +712,12 @@ def main():
                             "Черный список",
                             "Приём кандидата согласован",
                             "Решение о найме",
+                            "Бывший работник",
+                            "Требуется перенос встречи (Полиграф)",
+                            "Риски выявлены/Отказ"
                         ]:
                             change_status = False
+                            skillaz_action = 'Пропуск по ТЗ'
 
                         if current_status in [
                             "Гарантийный период",
@@ -723,7 +735,7 @@ def main():
                             "Отказ по резюме",
                             "Отказ/Проблемы с пакетом документов",
                             "Риски выявлены/Отказ (Полиграф)",
-                            "Самоотказ (Завершен)",
+                            "Самоотказ",
                         ]:
                             change_status = True
 
@@ -769,8 +781,12 @@ def main():
                             # web.find_element(
                             #     '//div[contains(text(), "Оставить комментарий")]/../textarea'
                             # ).type_keys("Повторный отклик")
+                            #
+                            # sleep(3)
 
-                            web.find_element('//button[@data-testid="button-status-change"]').click()
+                            # web.find_element('//button[@data-testid="button-status-change"]').click()
+
+                            sleep(2)
 
                             if web.wait_element('//div[contains(text(), "Текущий статус кандидата такой же как запрошен для изменения")]', timeout=5):
                                 print('Closing the form')
@@ -782,108 +798,138 @@ def main():
 
                             print("SAVED STATUS")
 
+                            if len(phone_num) != 12:
+                                skillaz_action = 'Изменил статус. Номер телефона не соответствует по длине'
+
                             # ----- Редактируем Кандидата -----
 
-                            web.find_element(
-                                '//span[contains(text(), "Редактировать кандидата")]'
-                            ).click()
+                            if len(phone_num) == 12:
+                                try:
+                                    web.find_element(
+                                        '//span[contains(text(), "Редактировать кандидата")]'
+                                    ).click()
+                                except:
+                                    web.find_element(
+                                        '//div[@data-testid="button-modal-close"]'
+                                    ).click()
 
-                            web.find_element(
-                                '//div[@data-testid="VacancyId-input-clear"]'
-                            ).click()
-
-                            web.find_element('//*[@id="VacancyId"]').click(double=False)
-                            sleep(2.1)
-                            keyboard.send_keys(str(id_))
-                            sleep(2.1)
-                            # web.execute_script_click_xpath('//*[@id="VacancyId"]')
-
-                            all_vacancies = web.find_elements(
-                                '//div[@class="WS_select__option css-yt9ioa-option"]'
-                            )
-                            all_vacancies.append(
-                                web.find_element('//span[@id="aria-context"]')
-                            )
-
-                            for vacancy in all_vacancies:
-                                vacancy_text = vacancy.get_attr("text").lower()
-                                print(vacancy_text, " | ", vacancy.selector)
-
-                            print("-----------------------------------")
-
-                            for vacancy in all_vacancies:
-
-                                vacancy_text = vacancy.get_attr("text").lower()
-                                if vacancy_text == "":
-                                    vacancy_text = vacancy.get_attr("innerHTML").lower()
-
-                                print(vacancy_text, " | ", vacancy.selector)
-
-                                if (
-                                    str(id_) in vacancy_text
-                                    and city_skillaz in vacancy_text
-                                    and vacancy.selector == '//span[@id="aria-context"]'
-                                ):
-                                    print("TYPING ENTER!!!")
-                                    # web.find_element('//*[@id="VacancyId"]').click(double=False)
-                                    sleep(1.5)
-                                    keyboard.send_keys("{ENTER}")
-                                    sleep(0.3)
-                                    keyboard.send_keys("{ENTER}")
-                                    break
-                                    # web.find_element('//*[@id="VacancyId"]').type_keys(web.keys.ENTER)
-
-                                if (
-                                    str(id_) in vacancy_text
-                                    and city_skillaz in vacancy_text
-                                    and vacancy.selector != '//span[@id="aria-context"]'
-                                ):  # city_skillaz != 'нур-султан':  # and '520000379' in vacancy_text:
-
-                                    print("HERE!!!")
-                                    print(vacancy.selector)
-                                    vacancy.click()
-                                    # web.execute_script_click_xpath(vacancy.selector)
-                                    break
-
-                            sleep(3)
-                            try:
+                                    web.find_element(
+                                        '//span[contains(text(), "Редактировать кандидата")]'
+                                    ).click()
                                 web.find_element(
-                                    '//label/div[contains(@data-original-title, "Таргет")]'
+                                    '//div[@data-testid="VacancyId-input-clear"]'
                                 ).click()
-                            except:
-                                web.execute_script_click_xpath(
-                                    '//label/div[contains(@data-original-title, "Таргет")]'
+
+                                web.find_element('//*[@id="VacancyId"]').click(double=False)
+                                sleep(2.1)
+                                keyboard.send_keys(str(id_))
+                                sleep(2.1)
+                                # web.execute_script_click_xpath('//*[@id="VacancyId"]')
+
+                                all_vacancies = web.find_elements(
+                                    '//div[@class="WS_select__option css-yt9ioa-option"]'
+                                )
+                                all_vacancies.append(
+                                    web.find_element('//span[@id="aria-context"]')
                                 )
 
-                            sleep(0)
-                            # web.execute_script_click_xpath('//button[contains(text(), "Сохранить")]')
-                            print('SAVEDDDDDDD!!!!')
+                                for vacancy in all_vacancies:
+                                    vacancy_text = vacancy.get_attr("text").lower()
+                                    print(vacancy_text, " | ", vacancy.selector)
 
-                            if skillaz_action == "Изменил статус":
+                                print("-----------------------------------")
 
-                                skillaz_action = "Изменил статус и редактировал кандидата"
+                                for vacancy in all_vacancies:
 
-                            else:
+                                    vacancy_text = vacancy.get_attr("text").lower()
+                                    if vacancy_text == "":
+                                        vacancy_text = vacancy.get_attr("innerHTML").lower()
 
-                                skillaz_action = "Редактировал кандидата"
+                                    print(vacancy_text, " | ", vacancy.selector)
 
-                sleep(0)
+                                    vacancy_text = vacancy_text.replace('нур-султан', 'астана').lower()
 
-                # update_in_db(
-                #     session=session,
-                #     row=row,
-                #     status_="success",
-                #     skillaz_status_="success",
-                #     skillaz_action_=skillaz_action,
-                #     previous_status_=previous_status,
-                #     error_reason_=None,
-                #     response_date_=row.response_date,
-                #     city_=row.city,
-                #     job_=row.job,
-                #     first_name_=row.first_name,
-                #     last_name_=row.last_name,
-                #     phone_number_=row.phone_number,
-                # )
+                                    if (
+                                        str(id_) in vacancy_text
+                                        and city_skillaz in vacancy_text
+                                        and vacancy.selector == '//span[@id="aria-context"]'
+                                        and (not keyword or keyword in vacancy_text)
+                                    ):
+                                        print("TYPING ENTER!!!")
+                                        # web.find_element('//*[@id="VacancyId"]').click(double=False)
+                                        sleep(1.5)
+                                        keyboard.send_keys("{ENTER}")
+                                        sleep(0.3)
+                                        keyboard.send_keys("{ENTER}")
+                                        break
+                                        # web.find_element('//*[@id="VacancyId"]').type_keys(web.keys.ENTER)
+
+                                    if (
+                                        str(id_) in vacancy_text
+                                        and city_skillaz in vacancy_text
+                                        and vacancy.selector != '//span[@id="aria-context"]'
+                                        and (not keyword or keyword in vacancy_text)
+                                    ):  # city_skillaz != 'нур-султан':  # and '520000379' in vacancy_text:
+
+                                        print("HERE!!!")
+                                        print(vacancy.selector)
+                                        vacancy.click()
+                                        # web.execute_script_click_xpath(vacancy.selector)
+                                        break
+
+                                sleep(3)
+
+                                if web.wait_element("//label[(contains(@for, 'Gender')) and (contains(@class, 'checked'))]", timeout=3):
+                                    gender = 'female' if 'female' in web.find_element("//label[(contains(@for, 'Gender')) and (contains(@class, 'checked'))]").get_attr('for') else 'male'
+                                else:
+                                    gender = 'male'
+
+                                web.find_element(f"//label[contains(@for, 'Gender-{gender}')]").click()
+
+                                web.find_element('//div[contains(text(), "Быстрый")]').click()
+
+                                try:
+                                    web.find_element(
+                                        '//label/div[contains(@data-original-title, "Таргет")]'
+                                    ).click()
+                                except:
+                                    web.execute_script_click_xpath(
+                                        '//label/div[contains(@data-original-title, "Таргет")]'
+                                    )
+
+                                web.find_element('//div[contains(text(), "Отклик")]').click()
+
+                                sleep(3)
+                                web.execute_script_click_xpath('//button[contains(text(), "Сохранить")]')
+                                print('SAVEDDDDDDD!!!!')
+
+                                sleep(2)
+
+                                if skillaz_action == "Изменил статус":
+
+                                    skillaz_action = "Изменил статус и редактировал кандидата"
+
+                                else:
+
+                                    skillaz_action = "Редактировал кандидата"
+
+                sleep(7)
+
+                update_in_db(
+                    session=session,
+                    row=row,
+                    status_="success",
+                    skillaz_status_="success",
+                    skillaz_action_=skillaz_action,
+                    previous_status_=previous_status,
+                    error_reason_=None,
+                    response_date_=row.response_date,
+                    city_=row.city,
+                    job_=row.job,
+                    first_name_=row.first_name,
+                    last_name_=row.last_name,
+                    phone_number_=row.phone_number,
+                )
                 # sleep(0.7)
                 # status_: str, response_date_: datetime, city_: str, job_: str,
                 # first_name_: str, last_name_: str, phone_number_: str, skillaz_status_: str
@@ -893,22 +939,22 @@ def main():
             except:
                 traceback.print_exc()
                 # web.quit()
-                # update_in_db(
-                #     session=session,
-                #     row=row,
-                #     status_="failed",
-                #     skillaz_status_="failed",
-                #     skillaz_action_=skillaz_action,
-                #     previous_status_=None,
-                #     error_reason_=str(traceback.format_exc())[:500],
-                #     response_date_=row.response_date,
-                #     city_=row.city,
-                #     job_=row.job,
-                #     first_name_=row.first_name,
-                #     last_name_=row.last_name,
-                #     phone_number_=row.phone_number,
-                # )
-                #
+                update_in_db(
+                    session=session,
+                    row=row,
+                    status_="failed",
+                    skillaz_status_="failed",
+                    skillaz_action_=skillaz_action,
+                    previous_status_=None,
+                    error_reason_=str(traceback.format_exc())[:500],
+                    response_date_=row.response_date,
+                    city_=row.city,
+                    job_=row.job,
+                    first_name_=row.first_name,
+                    last_name_=row.last_name,
+                    phone_number_=row.phone_number,
+                )
+
 
 if __name__ == "__main__":
     # noinspection PyTypeChecker
